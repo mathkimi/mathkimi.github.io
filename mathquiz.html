@@ -1,0 +1,735 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>연립방정식 퀴즈</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:#0a0e1a; --surface:#111827; --card:#1a2235; --border:#2a3a55;
+    --accent:#4f8ef7; --accent2:#7c3aed;
+    --green:#10b981; --red:#ef4444; --amber:#f59e0b;
+    --text:#e8edf5; --muted:#8899aa;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{
+    background:var(--bg);color:var(--text);
+    font-family:'Noto Sans KR',sans-serif;
+    min-height:100vh;display:flex;flex-direction:column;
+    align-items:center;padding:20px 16px 48px;
+  }
+  body::before{
+    content:'';position:fixed;top:-40%;left:-20%;width:80%;height:80%;
+    background:radial-gradient(ellipse,rgba(79,142,247,0.07) 0%,transparent 70%);
+    pointer-events:none;
+  }
+  body::after{
+    content:'';position:fixed;bottom:-30%;right:-10%;width:60%;height:60%;
+    background:radial-gradient(ellipse,rgba(124,58,237,0.06) 0%,transparent 70%);
+    pointer-events:none;
+  }
+  .container{width:100%;max-width:640px;position:relative;z-index:1;}
+
+  /* ── HEADER ── */
+  .hdr{display:flex;justify-content:space-between;align-items:center;margin-bottom:24px;padding:0 2px;}
+  .hdr-title{font-size:13px;font-weight:700;letter-spacing:.15em;text-transform:uppercase;color:var(--accent);font-family:'Space Mono',monospace;}
+  .hdr-score{font-family:'Space Mono',monospace;font-size:13px;color:var(--muted);}
+  .hdr-score span{color:var(--text);font-weight:700;}
+
+  /* ── CHAPTER SELECT ── */
+  .chapter-grid{display:grid;grid-template-columns:1fr;gap:12px;margin-bottom:16px;}
+  .ch-card{
+    background:var(--card);border:1px solid var(--border);border-radius:18px;
+    padding:20px 22px;cursor:pointer;transition:all .15s;position:relative;overflow:hidden;
+  }
+  .ch-card::before{
+    content:'';position:absolute;top:0;left:0;right:0;height:3px;
+    background:linear-gradient(90deg,var(--c1,var(--accent)),var(--c2,var(--accent2)));
+    border-radius:18px 18px 0 0;
+  }
+  .ch-card:hover{border-color:var(--accent);transform:translateY(-2px);}
+  .ch-num{font-family:'Space Mono',monospace;font-size:11px;color:var(--muted);margin-bottom:6px;letter-spacing:.1em;}
+  .ch-name{font-size:17px;font-weight:700;margin-bottom:6px;}
+  .ch-desc{font-size:12px;color:var(--muted);line-height:1.6;}
+  .ch-pills{display:flex;gap:6px;margin-top:10px;flex-wrap:wrap;}
+  .pill{font-size:10px;font-weight:700;padding:2px 9px;border-radius:20px;}
+  .pill-e{background:rgba(16,185,129,.15);color:#34d399;}
+  .pill-m{background:rgba(245,158,11,.15);color:#fbbf24;}
+  .pill-h{background:rgba(239,68,68,.15);color:#f87171;}
+  .ch-done{position:absolute;top:14px;right:16px;font-size:18px;}
+  .ch-lock{position:absolute;top:14px;right:16px;font-size:15px;color:var(--muted);}
+  .ch-card.locked{opacity:.5;cursor:not-allowed;}
+  .ch-card.locked:hover{transform:none;border-color:var(--border);}
+
+  .home-title{
+    font-size:32px;font-weight:900;line-height:1.2;margin-bottom:6px;
+    background:linear-gradient(135deg,var(--accent),#a78bfa);
+    -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+  }
+  .home-sub{font-size:13px;color:var(--muted);margin-bottom:28px;}
+  .home-info{
+    display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:28px;
+  }
+  .hi{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px 10px;text-align:center;}
+  .hi-n{font-family:'Space Mono',monospace;font-size:20px;font-weight:700;color:var(--accent);}
+  .hi-d{font-size:11px;color:var(--muted);margin-top:3px;}
+
+  /* ── PROGRESS ── */
+  .prog-row{display:flex;gap:5px;margin-bottom:18px;}
+  .pdot{flex:1;height:4px;border-radius:2px;background:var(--border);transition:background .3s;}
+  .pdot.done{background:var(--green);}
+  .pdot.err{background:var(--red);}
+  .pdot.cur{background:var(--accent);}
+
+  /* ── TIMER ── */
+  .timer-wrap{
+    background:var(--surface);border:1px solid var(--border);border-radius:12px;
+    padding:13px 18px;margin-bottom:18px;display:flex;align-items:center;gap:14px;
+  }
+  .ticon{font-family:'Space Mono',monospace;font-size:22px;font-weight:700;min-width:48px;color:var(--text);transition:color .3s;}
+  .ticon.warn{color:var(--amber);}
+  .ticon.dng{color:var(--red);animation:pulse .5s infinite alternate;}
+  @keyframes pulse{from{opacity:1}to{opacity:.45}}
+  .ttrack{flex:1;height:8px;background:var(--border);border-radius:4px;overflow:hidden;}
+  .tfill{height:100%;border-radius:4px;background:var(--green);transition:width .05s linear,background .3s;}
+
+  /* ── QUESTION ── */
+  .qcard{
+    background:var(--card);border:1px solid var(--border);border-radius:20px;
+    padding:26px 26px 22px;margin-bottom:14px;position:relative;overflow:hidden;
+  }
+  .qcard::before{
+    content:'';position:absolute;top:0;left:0;right:0;height:3px;
+    background:linear-gradient(90deg,var(--accent),var(--accent2));border-radius:20px 20px 0 0;
+  }
+  .meta{display:flex;gap:7px;align-items:center;margin-bottom:14px;flex-wrap:wrap;}
+  .badge{font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px;letter-spacing:.04em;}
+  .bt{background:rgba(79,142,247,.15);color:#7fb3ff;}
+  .be{background:rgba(16,185,129,.15);color:#34d399;}
+  .bm{background:rgba(245,158,11,.15);color:#fbbf24;}
+  .bh{background:rgba(239,68,68,.15);color:#f87171;}
+  .qnum{font-family:'Space Mono',monospace;font-size:11px;color:var(--muted);margin-left:auto;}
+
+  .qtext{font-size:17px;font-weight:500;line-height:1.7;color:var(--text);margin-bottom:6px;}
+  .eq-block{
+    display:block;font-family:'Space Mono',monospace;font-size:16px;
+    background:var(--surface);border:1px solid var(--border);border-radius:10px;
+    padding:12px 16px;margin:10px 0;line-height:2;color:#a8c8ff;
+  }
+  .hint{font-size:12px;color:var(--muted);background:rgba(79,142,247,.07);
+    border-left:2px solid var(--accent);padding:6px 10px;border-radius:0 6px 6px 0;margin-top:8px;}
+
+  /* ── CHOICES ── */
+  .choices{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;}
+  .cbtn{
+    background:var(--surface);border:1px solid var(--border);border-radius:14px;
+    padding:15px 12px;font-family:'Noto Sans KR',sans-serif;font-size:14px;font-weight:500;
+    color:var(--text);cursor:pointer;transition:all .15s;text-align:center;line-height:1.5;
+  }
+  .cbtn:hover:not(:disabled){border-color:var(--accent);background:rgba(79,142,247,.08);transform:translateY(-1px);}
+  .cbtn.correct{border-color:var(--green);background:rgba(16,185,129,.12);color:#6ee7b7;}
+  .cbtn.wrong{border-color:var(--red);background:rgba(239,68,68,.1);color:#fca5a5;}
+  .cbtn:disabled{cursor:default;}
+
+  /* ── FEEDBACK ── */
+  .fbbar{
+    min-height:36px;display:flex;align-items:center;justify-content:center;
+    font-size:14px;font-weight:700;border-radius:10px;margin-bottom:13px;
+    padding:8px 16px;text-align:center;transition:all .2s;
+  }
+  .fb-ok{background:rgba(16,185,129,.12);color:#34d399;}
+  .fb-no{background:rgba(239,68,68,.1);color:#f87171;}
+  .fb-to{background:rgba(245,158,11,.1);color:#fbbf24;}
+  .fb-empty{background:transparent;}
+
+  /* ── NEXT BTN ── */
+  .nbtn{
+    display:none;width:100%;padding:15px;
+    background:linear-gradient(135deg,var(--accent),var(--accent2));
+    border:none;border-radius:14px;font-family:'Noto Sans KR',sans-serif;
+    font-size:15px;font-weight:700;color:#fff;cursor:pointer;
+    transition:opacity .15s,transform .15s;letter-spacing:.02em;
+  }
+  .nbtn:hover{opacity:.9;transform:translateY(-1px);}
+
+  /* ── RESULT ── */
+  .result{text-align:center;padding:16px 0;}
+  .res-big{font-size:64px;line-height:1;margin-bottom:8px;}
+  .res-title{font-size:22px;font-weight:900;margin-bottom:5px;}
+  .res-sub{font-size:14px;color:var(--muted);margin-bottom:24px;}
+  .res-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:20px;}
+  .sc{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:15px 10px;text-align:center;}
+  .sv{font-family:'Space Mono',monospace;font-size:24px;font-weight:700;}
+  .sl{font-size:11px;color:var(--muted);margin-top:3px;}
+
+  /* chapter result breakdown */
+  .chapter-result-badge{
+    display:inline-block;font-size:13px;font-weight:700;padding:6px 16px;
+    border-radius:20px;margin-bottom:20px;
+  }
+  .crb-great{background:rgba(16,185,129,.15);color:#34d399;}
+  .crb-ok{background:rgba(245,158,11,.15);color:#fbbf24;}
+  .crb-low{background:rgba(239,68,68,.15);color:#f87171;}
+
+  .review-list{
+    background:var(--surface);border:1px solid var(--border);border-radius:14px;
+    padding:14px 16px;margin-bottom:20px;text-align:left;
+  }
+  .review-title{font-size:12px;color:var(--muted);letter-spacing:.08em;font-weight:700;margin-bottom:10px;}
+  .review-item{
+    display:flex;align-items:flex-start;gap:8px;padding:7px 0;
+    border-bottom:1px solid var(--border);font-size:13px;line-height:1.5;
+  }
+  .review-item:last-child{border-bottom:none;}
+  .ri-icon{flex-shrink:0;margin-top:1px;}
+  .ri-q{color:var(--muted);flex:1;}
+  .ri-ans{color:#6ee7b7;font-weight:500;white-space:nowrap;}
+
+  .rbtn-group{display:flex;flex-direction:column;gap:10px;}
+  .rbtn{
+    width:100%;padding:15px;border-radius:14px;font-family:'Noto Sans KR',sans-serif;
+    font-size:15px;font-weight:700;cursor:pointer;transition:opacity .15s,transform .15s;border:none;
+  }
+  .rbtn:hover{opacity:.88;transform:translateY(-1px);}
+  .rbtn-p{background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;}
+  .rbtn-s{background:var(--surface);border:1px solid var(--border) !important;color:var(--text);}
+
+  /* ── STREAK POPUP ── */
+  .streak-popup{
+    position:fixed;top:50%;left:50%;
+    transform:translate(-50%,-50%) scale(0);
+    font-size:40px;font-weight:900;color:var(--amber);
+    font-family:'Space Mono',monospace;
+    text-shadow:0 0 30px rgba(245,158,11,.5);
+    pointer-events:none;z-index:999;
+    transition:transform .2s cubic-bezier(.34,1.56,.64,1),opacity .3s;opacity:0;
+  }
+  .streak-popup.show{transform:translate(-50%,-50%) scale(1);opacity:1;}
+
+  /* ── CHAPTER COMPLETE ── */
+  .ch-complete-banner{
+    background:linear-gradient(135deg,rgba(16,185,129,.15),rgba(79,142,247,.1));
+    border:1px solid rgba(16,185,129,.3);border-radius:14px;
+    padding:14px 18px;margin-bottom:16px;text-align:center;display:none;
+  }
+  .ch-complete-banner.show{display:block;}
+</style>
+</head>
+<body>
+<div class="container" id="app"></div>
+<div class="streak-popup" id="streak-popup"></div>
+
+<script>
+/* ═══════════════════════════════════════════════
+   문제 데이터  (소챕터 4개, 각 챕터 상중하 3문제씩 = 9문제)
+═══════════════════════════════════════════════ */
+const CHAPTERS = [
+  {
+    id: 0,
+    name: "연립방정식이란?",
+    desc: "연립방정식의 뜻, 해의 의미, 해 확인하기",
+    c1: "#4f8ef7", c2: "#7c3aed",
+    types: ["해의 의미", "해 확인", "해의 조건"],
+    questions: [
+      // ── 하 ─────────────────────────────────
+      {
+        diff:"easy", type:"해 확인",
+        q:"x=2, y=1이 다음 연립방정식의 해인지 확인하세요.",
+        eq:"x + y = 3\n2x − y = 3",
+        hint:"두 식 모두에 x=2, y=1을 대입해 등식이 성립하는지 확인해요",
+        choices:["두 식 모두 성립 → 해이다","첫 번째 식만 성립","두 번째 식만 성립","두 식 모두 성립 안 함"], ans:0
+      },
+      {
+        diff:"easy", type:"해의 의미",
+        q:"연립방정식의 '해'란 무엇인가요?",
+        eq:"ax + by = c\ndx + ey = f",
+        hint:"해는 두 방정식을 '동시에' 만족시키는 값이에요",
+        choices:["한 방정식만 만족시키는 x, y","두 방정식을 동시에 만족시키는 x, y","x의 값만 구한 것","방정식의 개수"], ans:1
+      },
+      // ── 중 ─────────────────────────────────
+      {
+        diff:"mid", type:"해 확인",
+        q:"(3, 1)이 다음 연립방정식의 해인지 판단하세요.",
+        eq:"x + 2y = 5\n2x − y = 5",
+        hint:"x=3, y=1을 두 식 모두에 대입해봐요",
+        choices:["해이다","해가 아니다","첫 번째 식만 만족","두 번째 식만 만족"], ans:0
+      },
+      {
+        diff:"mid", type:"해의 조건",
+        q:"x=a, y=2가 해일 때, a의 값을 구하세요.",
+        eq:"3x − y = 7\nx + 2y = 7",
+        hint:"y=2를 첫 번째 식에 대입: 3x−2=7, 3x=9, x=3",
+        choices:["a=2","a=3","a=4","a=5"], ans:1
+      },
+      // ── 상 ─────────────────────────────────
+      {
+        diff:"hard", type:"해의 조건",
+        q:"x=k, y=k+1이 다음 연립방정식의 해일 때, k의 값은?",
+        eq:"x + y = 5\n2x − y = 1",
+        hint:"x=k, y=k+1을 두 식에 대입하면 2k+1=5, 즉 k=?",
+        choices:["k=1","k=2","k=3","k=4"], ans:1
+      },
+      {
+        diff:"hard", type:"해의 조건",
+        q:"x=3, y=b가 다음 연립방정식의 해일 때, a+b의 값은?",
+        eq:"ax − y = 5\n2x + y = 10",
+        hint:"x=3을 두 번째 식에 대입해 y를 먼저 구해요: 6+y=10",
+        choices:["a+b=5","a+b=6","a+b=7","a+b=8"], ans:2
+      },
+    ]
+  },
+  {
+    id: 1,
+    name: "가감법",
+    desc: "두 식을 더하거나 빼서 미지수 하나를 소거하는 방법",
+    c1: "#10b981", c2: "#4f8ef7",
+    types: ["가감법"],
+    questions: [
+      // ── 하 ─────────────────────────────────
+      {
+        diff:"easy", type:"가감법",
+        q:"두 식을 더해서 연립방정식을 풀어보세요.",
+        eq:"x + y = 7\nx − y = 3",
+        hint:"두 식을 더하면 2x = 10이 되어 x만 남아요",
+        choices:["x=5, y=2","x=4, y=3","x=6, y=1","x=3, y=4"], ans:0
+      },
+      {
+        diff:"easy", type:"가감법",
+        q:"두 식을 빼서 연립방정식을 풀어보세요.",
+        eq:"3x + y = 11\nx + y = 5",
+        hint:"첫 번째 식 − 두 번째 식 → 2x = 6",
+        choices:["x=2, y=3","x=3, y=2","x=4, y=1","x=1, y=4"], ans:1
+      },
+      // ── 중 ─────────────────────────────────
+      {
+        diff:"mid", type:"가감법",
+        q:"계수를 맞춰 가감법으로 풀어보세요.",
+        eq:"2x + 3y = 16\n2x − y = 4",
+        hint:"두 식을 빼면 4y = 12, y만 먼저 구해요",
+        choices:["x=4, y=2","x=3, y=2","x=5, y=2","x=2, y=4"], ans:2
+      },
+      {
+        diff:"mid", type:"가감법",
+        q:"y계수를 맞춰 가감법으로 풀어보세요.",
+        eq:"3x + 2y = 16\n5x − 2y = 8",
+        hint:"두 식을 더하면 y가 소거되어 8x = 24",
+        choices:["x=2, y=5","x=3, y=3","x=3, y=2","x=4, y=2"], ans:2
+      },
+      // ── 상 ─────────────────────────────────
+      {
+        diff:"hard", type:"가감법",
+        q:"계수를 맞춰 두 미지수를 모두 소거해보세요.",
+        eq:"2x + 3y = 7\n3x − 2y = 4",
+        hint:"x를 소거: ×3과 ×2로 계수를 6으로 맞춰요",
+        choices:["x=2, y=1","x=1, y=2","x=3, y=0","x=2, y=2"], ans:0
+      },
+      {
+        diff:"hard", type:"가감법",
+        q:"괄호를 정리한 뒤 가감법으로 풀어보세요.",
+        eq:"2(x + y) = x + 11\n3x − 2y = 5",
+        hint:"첫 식 정리: x + 2y = 11, 이후 y계수를 맞춰요",
+        choices:["x=3, y=4","x=5, y=3","x=7, y=2","x=4, y=3"], ans:0
+      },
+    ]
+  },
+  {
+    id: 2,
+    name: "대입법",
+    desc: "한 식에서 미지수를 나타내 다른 식에 대입하는 방법",
+    c1: "#f59e0b", c2: "#ef4444",
+    types: ["대입법"],
+    questions: [
+      // ── 하 ─────────────────────────────────
+      {
+        diff:"easy", type:"대입법",
+        q:"y가 x로 표현된 경우, 대입법으로 풀어보세요.",
+        eq:"y = x + 2\nx + y = 8",
+        hint:"y = x+2를 두 번째 식에 그대로 대입해요",
+        choices:["x=2, y=4","x=3, y=5","x=4, y=6","x=1, y=3"], ans:1
+      },
+      {
+        diff:"easy", type:"대입법",
+        q:"y = 2x − 1을 이용해 대입법으로 풀면?",
+        eq:"y = 2x − 1\nx + y = 8",
+        hint:"y 자리에 2x−1을 넣으면 x + (2x−1) = 8",
+        choices:["x=2, y=3","x=3, y=5","x=4, y=7","x=1, y=1"], ans:1
+      },
+      // ── 중 ─────────────────────────────────
+      {
+        diff:"mid", type:"대입법",
+        q:"x가 y로 표현된 경우, 대입법으로 풀어보세요.",
+        eq:"x = 3y − 2\n2x − y = 8",
+        hint:"x = 3y−2를 두 번째 식에 대입해요",
+        choices:["x=4, y=2","x=7, y=3","x=1, y=1","x=10, y=4"], ans:1
+      },
+      {
+        diff:"mid", type:"대입법",
+        q:"한 식을 변형해 대입법으로 풀어보세요.",
+        eq:"x − y = 1\n2x + 3y = 17",
+        hint:"첫 식에서 x = y+1로 변형 후 대입",
+        choices:["x=3, y=2","x=4, y=3","x=5, y=4","x=2, y=1"], ans:1
+      },
+      // ── 상 ─────────────────────────────────
+      {
+        diff:"hard", type:"대입법",
+        q:"분수가 포함된 연립방정식을 대입법으로 풀면?",
+        eq:"y = (x + 1)/2\n3x − 2y = 4",
+        hint:"y를 대입하면 3x − (x+1) = 4, 즉 2x = 5",
+        choices:["x=2, y=1.5","x=2.5, y=1.75","x=3, y=2","x=1, y=1"], ans:1
+      },
+      {
+        diff:"hard", type:"대입법",
+        q:"소수가 포함된 연립방정식을 풀어보세요.",
+        eq:"0.2x + 0.3y = 1.3\n0.3x − 0.1y = 0.5",
+        hint:"양변에 10을 곱해 정수 계수로 바꿔요: 2x+3y=13, 3x−y=5",
+        choices:["x=2, y=3","x=3, y=2","x=1, y=3","x=2, y=2"], ans:0
+      },
+    ]
+  },
+  {
+    id: 3,
+    name: "연립방정식의 활용",
+    desc: "수에 관한 문제, 나이, 개수·가격 문제 풀기",
+    c1: "#ef4444", c2: "#f59e0b",
+    types: ["문장제"],
+    questions: [
+      // ── 하 ─────────────────────────────────
+      {
+        diff:"easy", type:"문장제 - 수",
+        q:"어떤 두 수의 합은 20이고, 차는 4입니다. 두 수는?",
+        eq:"x + y = 20\nx − y = 4",
+        hint:"두 식을 더하면 2x = 24, x = 12",
+        choices:["8과 12","10과 10","7과 13","9과 11"], ans:0
+      },
+      {
+        diff:"easy", type:"문장제 - 개수",
+        q:"학생 40명 중 안경 쓴 학생이 쓰지 않은 학생보다 4명 많을 때, 안경 쓴 학생 수는?",
+        eq:"x + y = 40\nx − y = 4",
+        hint:"두 식을 더하면 2x = 44",
+        choices:["20명","22명","24명","18명"], ans:1
+      },
+      // ── 중 ─────────────────────────────────
+      {
+        diff:"mid", type:"문장제 - 나이",
+        q:"올해 어머니와 딸의 나이 합은 46세이고, 어머니는 딸보다 22세 많습니다. 딸의 나이는?",
+        eq:"x + y = 46\nx − y = 22",
+        hint:"두 식을 더해 어머니 나이(x)를 먼저 구해요",
+        choices:["10세","11세","12세","13세"], ans:2
+      },
+      {
+        diff:"mid", type:"문장제 - 가격",
+        q:"연필 2자루와 볼펜 1자루는 1400원, 연필 1자루와 볼펜 2자루는 1300원입니다. 연필 1자루의 가격은?",
+        eq:"2x + y = 1400\nx + 2y = 1300",
+        hint:"첫 식 ×2 − 두 번째 식: 3x = 1500",
+        choices:["400원","500원","600원","700원"], ans:1
+      },
+      // ── 상 ─────────────────────────────────
+      {
+        diff:"hard", type:"문장제 - 나이",
+        q:"올해 아버지와 아들의 나이 합은 46세이고, 4년 후 아버지 나이가 아들의 2배가 됩니다. 현재 아들 나이는?",
+        eq:"x + y = 46\nx + 4 = 2(y + 4)",
+        hint:"두 번째 식 정리: x − 2y = 4, 연립으로 풀어요",
+        choices:["14세","16세","18세","12세"], ans:0
+      },
+      {
+        diff:"hard", type:"문장제 - 수",
+        q:"두 자리 자연수에서 십의 자리와 일의 자리 합은 9이고, 십의 자리와 일의 자리를 바꾸면 원래 수보다 27이 큽니다. 원래 수는?",
+        eq:"x + y = 9\n(10y + x) − (10x + y) = 27",
+        hint:"두 번째 식 정리: 9y − 9x = 27 → y − x = 3",
+        choices:["36","45","27","63"], ans:0
+      },
+    ]
+  }
+];
+
+const DIFF_TIME = {easy:45, mid:60, hard:80};
+const DIFF_LABEL = {easy:"하", mid:"중", hard:"상"};
+
+/* progress: 각 챕터 완료 여부 저장 */
+let progress = JSON.parse(localStorage.getItem("lp_progress")||"{}");
+
+let G = {
+  screen:"home",
+  chIdx:0,
+  questions:[],
+  idx:0,
+  score:0,
+  streak:0,
+  results:[],
+  answered:false,
+  timeLeft:0,
+  maxTime:45,
+  timer:null,
+};
+
+function shuffle(a){
+  const b=[...a];
+  for(let i=b.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[b[i],b[j]]=[b[j],b[i]];}
+  return b;
+}
+
+function sortByDiff(questions){
+  const easy = shuffle(questions.filter(q=>q.diff==="easy"));
+  const mid  = shuffle(questions.filter(q=>q.diff==="mid"));
+  const hard = shuffle(questions.filter(q=>q.diff==="hard"));
+  return [...easy, ...mid, ...hard];
+}
+
+function startChapter(idx){
+  clearInterval(G.timer);
+  G.chIdx = idx;
+  G.questions = sortByDiff(CHAPTERS[idx].questions);
+  G.idx = 0; G.score = 0; G.streak = 0; G.results = [];
+  G.answered = false;
+  G.screen = "game";
+  render();
+  startTimer();
+}
+
+function startTimer(){
+  clearInterval(G.timer);
+  const q = G.questions[G.idx];
+  G.maxTime = DIFF_TIME[q.diff];
+  G.timeLeft = G.maxTime;
+  G.timer = setInterval(()=>{
+    G.timeLeft -= 0.05;
+    updateTimerUI();
+    if(G.timeLeft<=0 && !G.answered){clearInterval(G.timer);handleAnswer(-1);}
+  },50);
+}
+
+function updateTimerUI(){
+  const fill=document.getElementById("tfill"), icon=document.getElementById("ticon");
+  if(!fill||!icon)return;
+  const pct=Math.max(0,(G.timeLeft/G.maxTime)*100);
+  fill.style.width=pct+"%";
+  icon.textContent=Math.ceil(G.timeLeft)+"s";
+  if(pct>50){fill.style.background="var(--green)";icon.className="ticon";}
+  else if(pct>25){fill.style.background="var(--amber)";icon.className="ticon warn";}
+  else{fill.style.background="var(--red)";icon.className="ticon dng";}
+}
+
+function handleAnswer(idx){
+  if(G.answered)return;
+  G.answered=true;
+  clearInterval(G.timer);
+  const q=G.questions[G.idx];
+  const correct=idx===q.ans;
+  G.results.push({correct,timeout:idx===-1,q,idx});
+  if(correct){G.score++;G.streak++;}else{G.streak=0;}
+
+  document.querySelectorAll(".cbtn").forEach((b,i)=>{
+    b.disabled=true;
+    if(i===q.ans)b.classList.add("correct");
+    else if(i===idx)b.classList.add("wrong");
+  });
+
+  const fb=document.getElementById("fb");
+  if(fb){
+    if(idx===-1){fb.textContent="⏰ 시간 초과! 정답: "+q.choices[q.ans];fb.className="fbbar fb-to";}
+    else if(correct){
+      const combo=G.streak>=3?` 🔥${G.streak}연속!`:"";
+      fb.textContent=["정답! 🎉","완벽해요! ✨","맞았어요! 👍"][Math.floor(Math.random()*3)]+combo;
+      fb.className="fbbar fb-ok";
+      if(G.streak>=3)showStreak(G.streak);
+    }else{
+      fb.textContent="틀렸어요 😅  정답: "+q.choices[q.ans];
+      fb.className="fbbar fb-no";
+    }
+  }
+  document.getElementById("nbtn").style.display="block";
+  updateDots();
+}
+
+function showStreak(n){
+  const el=document.getElementById("streak-popup");
+  el.textContent=n+"연속! 🔥";
+  el.classList.add("show");
+  setTimeout(()=>el.classList.remove("show"),1300);
+}
+
+function nextQuestion(){
+  G.idx++;
+  if(G.idx>=G.questions.length){
+    // 챕터 완료 처리
+    const pct=Math.round((G.score/G.questions.length)*100);
+    if(pct>=60) progress[G.chIdx]=true;
+    try{localStorage.setItem("lp_progress",JSON.stringify(progress));}catch(e){}
+    G.screen="result";
+    render();
+    return;
+  }
+  G.answered=false;
+  render();
+  startTimer();
+}
+
+function updateDots(){
+  G.results.forEach((r,i)=>{
+    const d=document.getElementById("dot"+i);
+    if(d)d.className="pdot "+(r.correct?"done":"err");
+  });
+  const cur=document.getElementById("dot"+G.idx);
+  if(cur)cur.className="pdot cur";
+}
+
+/* ─────────── RENDER ─────────── */
+function render(){
+  const app=document.getElementById("app");
+  if(G.screen==="home")renderHome(app);
+  else if(G.screen==="game")renderGame(app);
+  else renderResult(app);
+}
+
+function renderHome(app){
+  const totalDone=Object.values(progress).filter(Boolean).length;
+  app.innerHTML=`
+    <div class="hdr">
+      <div class="hdr-title">연립방정식 퀴즈</div>
+      <div class="hdr-score">완료 <span>${totalDone}/${CHAPTERS.length}</span></div>
+    </div>
+    <div style="margin-bottom:28px;">
+      <div class="home-title">소챕터별<br>퀴즈 게임</div>
+      <div class="home-sub">중학교 2학년 · 진도에 맞춰 챕터를 선택해요</div>
+      <div class="home-info">
+        <div class="hi"><div class="hi-n">4</div><div class="hi-d">소챕터</div></div>
+        <div class="hi"><div class="hi-n">6</div><div class="hi-d">챕터당 문제</div></div>
+        <div class="hi"><div class="hi-n">상중하</div><div class="hi-d">수준별 구성</div></div>
+      </div>
+    </div>
+    <div class="chapter-grid" id="chgrid"></div>
+  `;
+  const grid=document.getElementById("chgrid");
+  CHAPTERS.forEach((ch,i)=>{
+    const done=progress[i];
+    const card=document.createElement("div");
+    card.className="ch-card"+(done?" ":" ");
+    card.style.setProperty("--c1",ch.c1);
+    card.style.setProperty("--c2",ch.c2);
+    card.innerHTML=`
+      ${done?`<div class="ch-done">✅</div>`:""}
+      <div class="ch-num">챕터 ${i+1}</div>
+      <div class="ch-name">${ch.name}</div>
+      <div class="ch-desc">${ch.desc}</div>
+      <div class="ch-pills">
+        <span class="pill pill-e">하</span>
+        <span class="pill pill-m">중</span>
+        <span class="pill pill-h">상</span>
+        <span class="pill" style="background:rgba(79,142,247,.12);color:#7fb3ff;">6문제</span>
+      </div>
+    `;
+    card.onclick=()=>startChapter(i);
+    grid.appendChild(card);
+  });
+}
+
+function renderGame(app){
+  const q=G.questions[G.idx];
+  const ch=CHAPTERS[G.chIdx];
+  const dBadge={easy:"be",mid:"bm",hard:"bh"}[q.diff];
+  const dots=G.questions.map((_,i)=>{
+    let c="pdot";
+    if(i<G.results.length) c+=" "+(G.results[i].correct?"done":"err");
+    else if(i===G.idx) c+=" cur";
+    return `<div class="${c}" id="dot${i}"></div>`;
+  }).join("");
+
+  app.innerHTML=`
+    <div class="hdr">
+      <div class="hdr-title" style="color:${ch.c1}">${ch.name}</div>
+      <div class="hdr-score">점수 <span>${G.score}</span></div>
+    </div>
+    <div class="prog-row">${dots}</div>
+    <div class="timer-wrap">
+      <div class="ticon" id="ticon">${DIFF_TIME[q.diff]}s</div>
+      <div class="ttrack"><div class="tfill" id="tfill" style="width:100%"></div></div>
+    </div>
+    <div class="qcard">
+      <div class="meta">
+        <span class="badge bt">${q.type}</span>
+        <span class="badge ${dBadge}">난이도 ${DIFF_LABEL[q.diff]}</span>
+        <span class="qnum">${G.idx+1} / ${G.questions.length}</span>
+      </div>
+      <div class="qtext">${q.q}<span class="eq-block">${q.eq.replace(/\n/g,"<br>")}</span></div>
+      <div class="hint">💡 ${q.hint}</div>
+    </div>
+    <div class="choices" id="choices"></div>
+    <div class="fbbar fb-empty" id="fb"></div>
+    <button class="nbtn" id="nbtn" onclick="nextQuestion()">
+      ${G.idx+1<G.questions.length?"다음 문제 →":"결과 보기 →"}
+    </button>
+  `;
+
+  const cc=document.getElementById("choices");
+  q.choices.forEach((c,i)=>{
+    const b=document.createElement("button");
+    b.className="cbtn";
+    b.innerHTML=c;
+    b.onclick=()=>handleAnswer(i);
+    cc.appendChild(b);
+  });
+}
+
+function renderResult(app){
+  const total=G.questions.length;
+  const pct=Math.round((G.score/total)*100);
+  const ch=CHAPTERS[G.chIdx];
+  const emoji=pct>=90?"🏆":pct>=70?"🎉":pct>=50?"👏":"💪";
+  const msg=pct>=90?"완벽해요! 모두 이해했어요!":pct>=70?"잘했어요!":pct>=50?"다시 한번 복습해봐요!":"한 번 더 도전해봐요!";
+  const wrong=total-G.score;
+  const maxStreak=G.results.reduce((max,r,i,arr)=>{
+    let s=0;for(let j=i;j<arr.length&&arr[j].correct;j++)s++;return Math.max(max,s);
+  },0);
+  const crbCls=pct>=70?"crb-great":pct>=50?"crb-ok":"crb-low";
+  const crbTxt=pct>=70?"챕터 클리어!":pct>=50?"아쉬워요, 복습 권장":"다시 도전해봐요";
+
+  // 틀린 문제 목록
+  const wrongItems=G.results.filter(r=>!r.correct);
+  const reviewHTML=wrongItems.length===0
+    ? `<div style="text-align:center;color:var(--muted);font-size:13px;padding:8px 0;">틀린 문제가 없어요! 완벽해요 🎉</div>`
+    : wrongItems.map(r=>`
+        <div class="review-item">
+          <span class="ri-icon">❌</span>
+          <span class="ri-q">${r.q.q}</span>
+          <span class="ri-ans">→ ${r.q.choices[r.q.ans]}</span>
+        </div>
+      `).join("");
+
+  // 다음 챕터 버튼
+  const hasNext = G.chIdx + 1 < CHAPTERS.length;
+  const nextBtn = hasNext
+    ? `<button class="rbtn rbtn-p" onclick="startChapter(${G.chIdx+1})">다음 챕터: ${CHAPTERS[G.chIdx+1].name} →</button>`
+    : `<button class="rbtn rbtn-p" onclick="G.screen='home';render()">홈으로 돌아가기 🏠</button>`;
+
+  app.innerHTML=`
+    <div class="hdr">
+      <div class="hdr-title" style="color:${ch.c1}">${ch.name} 결과</div>
+    </div>
+    <div class="result">
+      <div class="res-big">${emoji}</div>
+      <div class="res-title">${G.score}점 / ${total}점</div>
+      <div class="res-sub">${msg}</div>
+      <div class="chapter-result-badge ${crbCls}">${crbTxt}</div>
+      <div class="res-stats">
+        <div class="sc"><div class="sv" style="color:var(--accent)">${pct}%</div><div class="sl">정답률</div></div>
+        <div class="sc"><div class="sv" style="color:var(--green)">${G.score}</div><div class="sl">정답</div></div>
+        <div class="sc"><div class="sv" style="color:var(--amber)">${maxStreak}</div><div class="sl">최대 콤보</div></div>
+      </div>
+      <div class="review-list">
+        <div class="review-title">📋 오답 노트</div>
+        ${reviewHTML}
+      </div>
+      <div class="rbtn-group">
+        ${nextBtn}
+        <button class="rbtn rbtn-s" onclick="startChapter(${G.chIdx})">이 챕터 다시 풀기 ↺</button>
+        <button class="rbtn rbtn-s" onclick="G.screen='home';render()">챕터 목록으로</button>
+      </div>
+    </div>
+  `;
+}
+
+render();
+</script>
+</body>
+</html>
